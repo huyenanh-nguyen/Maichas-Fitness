@@ -10,7 +10,6 @@ struct TrainingPlanView: View {
     
     @State private var newPlanText: String = ""
     @State private var selectedNote: TrainingNote? = nil
-    @State private var showDetail = false
     
     var body: some View {
         NavigationView {
@@ -23,7 +22,6 @@ struct TrainingPlanView: View {
                 TextEditor(text: $newPlanText)
                     .frame(height: 150)
                     .border(Color.gray.opacity(0.5), width: 1)
-                    .padding(.bottom)
                 
                 Button(action: savePlan) {
                     Text("Save")
@@ -40,13 +38,13 @@ struct TrainingPlanView: View {
                 
                 Text("My Plan")
                     .font(.headline)
-                    .padding(.bottom, 5)
+                    .padding(.vertical, 5)
                 
-                // Scrollable List
                 if notes.isEmpty {
                     Text("List is Empty")
                         .foregroundColor(.secondary)
                         .padding(.top, 20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     List {
                         ForEach(notes, id: \.id) { note in
@@ -60,14 +58,10 @@ struct TrainingPlanView: View {
                             }
                             .contentShape(Rectangle()) // Damit der gesamte Zellbereich tappable ist
                             .onTapGesture {
-                                selectedNote = note // Nur hier Sheet triggern
+                                selectedNote = note
                             }
                         }
                         .onDelete(perform: deleteNotes)
-                    }
-                    .sheet(item: $selectedNote) { note in
-                        NoteEditView(note: note)
-                            .environment(\.managedObjectContext, viewContext)
                     }
                     .listStyle(PlainListStyle())
                 }
@@ -76,6 +70,7 @@ struct TrainingPlanView: View {
             }
             .padding()
             .navigationTitle("Training Plan")
+            // Ein einziges Sheet für Details
             .sheet(item: $selectedNote) { note in
                 NoteEditView(note: note)
                     .environment(\.managedObjectContext, viewContext)
@@ -92,19 +87,19 @@ struct TrainingPlanView: View {
     
     // Neue Notiz speichern
     private func savePlan() {
-            guard !newPlanText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        guard !newPlanText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
-            let plan = TrainingNote(context: viewContext)
-            plan.content = newPlanText
-            plan.date = Date()
+        let plan = TrainingNote(context: viewContext)
+        plan.content = newPlanText
+        plan.date = Date()
 
-            do {
-                try viewContext.save()
-                newPlanText = ""
-            } catch {
-                print("Error saving plan: \(error)")
-            }
+        do {
+            try viewContext.save()
+            newPlanText = ""
+        } catch {
+            print("Error saving plan: \(error)")
         }
+    }
     
     // Swipe-to-delete
     private func deleteNotes(at offsets: IndexSet) {
