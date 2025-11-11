@@ -1,10 +1,3 @@
-//
-//  NewExcersiceView.swift
-//  Yuen Fitness
-//
-//  Created by Huyen Anh Nguyen on 10.11.25.
-//
-
 import SwiftUI
 
 struct NewExerciseView: View {

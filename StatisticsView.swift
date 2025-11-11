@@ -1,10 +1,3 @@
-//
-//  StatisticView.swift
-//  Yuen Fitness
-//
-//  Created by Huyen Anh Nguyen on 10.11.25.
-//
-
 import SwiftUI
 import Charts
 

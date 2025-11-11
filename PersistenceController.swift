@@ -1,10 +1,3 @@
-//
-//  PersistenController.swift
-//  Yuen Fitness
-//
-//  Created by Huyen Anh Nguyen on 10.11.25.
-//
-
 import CoreData
 
 struct PersistenceController {
@@ -14,7 +7,7 @@ struct PersistenceController {
     let container: NSPersistentContainer
 
     init(inMemory: Bool = false) {
-        container = NSPersistentContainer(name: "FitnessApp") // Name muss deinem .xcdatamodeld entsprechen
+        container = NSPersistentContainer(name: "YuenModel") // Name of my .xcdatamodeld file (Create that file and then save it in the app folder..)
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         }

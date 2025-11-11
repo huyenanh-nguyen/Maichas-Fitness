@@ -25,7 +25,7 @@ struct ContentView: View {
             .listStyle(SidebarListStyle())
             .navigationTitle("Dashboard")
         } detail: {
-            // Standardmäßig erste View anzeigen
+//            if open up the app, the contentview will show first (HomeView())
             HomeView()
         }
     }
