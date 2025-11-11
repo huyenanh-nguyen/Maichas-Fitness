@@ -1,99 +1,3 @@
-//import SwiftUI
-//import CoreData
-//
-//struct TrainingPlanView: View {
-//    @Environment(\.managedObjectContext) private var viewContext
-//    
-//    @FetchRequest(
-//        entity: TrainingNote.entity(),
-//        sortDescriptors: [NSSortDescriptor(keyPath: \TrainingNote.title, ascending: true)]
-//    ) var notes: FetchedResults<TrainingNote>
-//    
-//    @State private var newPlanText: String = ""
-//    
-//    var body: some View {
-//        NavigationView {
-//            VStack(alignment: .leading) {
-//                
-//                // Eingabefeld für neue Trainingsplan-Notiz
-//                Text("Create your Training Plan:")
-//                    .font(.headline)
-//                    .padding(.top)
-//                
-//                TextEditor(text: $newPlanText)
-//                    .frame(height: 150)
-//                    .border(Color.gray.opacity(0.5), width: 1)
-//                    .padding(.bottom)
-//                
-//                Button(action: savePlan) {
-//                    Text("Save")
-//                        .font(.headline)
-//                        .frame(maxWidth: .infinity)
-//                        .padding()
-//                        .background(Color.blue)
-//                        .foregroundColor(.white)
-//                        .cornerRadius(10)
-//                }
-//                .padding(.bottom)
-//                
-//                Divider()
-//                
-//                Text("My Plan")
-//                    .font(.headline)
-//                    .padding(.bottom, 5)
-//                
-//                // Liste der gespeicherten Pläne
-//                if notes.isEmpty {
-//                    Text("List is Empty")
-//                        .foregroundColor(.secondary)
-//                        .padding(.top, 20)
-//                } else {
-//                    List {
-//                        ForEach(notes, id: \.objectID) { note in
-//                            VStack(alignment: .leading) {
-//                                Text(note.content ?? "")
-//                                    .lineLimit(2)
-//                            }
-//                        }
-//
-//                        .onDelete(perform: deletePlan)
-//                    }
-//                }
-//                
-//                Spacer()
-//            }
-//            .padding()
-//            .navigationTitle("Training Plan")
-//        }
-//    }
-//    
-//    // Neue Notiz speichern
-//    private func savePlan() {
-//        guard !newPlanText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-//        
-//        let plan = TrainingNote(context: viewContext)
-//        plan.content = newPlanText
-//        plan.date = Date()
-//        
-//        do {
-//            try viewContext.save()
-//            newPlanText = ""
-//        } catch {
-//            print("Error saving plan: \(error)")
-//        }
-//    }
-//    
-//    // Notiz löschen
-//    private func deletePlan(at offsets: IndexSet) {
-//        offsets.map { notes[$0] }.forEach(viewContext.delete)
-//        do {
-//            try viewContext.save()
-//        } catch {
-//            print("Error deleting plan: \(error)")
-//        }
-//    }
-//}
-
 import SwiftUI
 import CoreData
 
@@ -101,14 +5,16 @@ struct TrainingPlanView: View {
     @Environment(\.managedObjectContext) private var viewContext
     
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \TrainingNote.date, ascending: false)]
+        sortDescriptors: [NSSortDescriptor(keyPath: \TrainingNote.date, ascending: true)]
     ) var notes: FetchedResults<TrainingNote>
     
     @State private var newPlanText: String = ""
+    @State private var selectedNote: TrainingNote? = nil
+    @State private var showDetail = false
     
     var body: some View {
         NavigationView {
-            VStack {
+            VStack(alignment: .leading) {
                 // Eingabefeld für neue Trainingsplan-Notiz
                 Text("Create your Training Plan:")
                     .font(.headline)
@@ -132,60 +38,82 @@ struct TrainingPlanView: View {
                 
                 Divider()
                 
-                Text("My Plans")
+                Text("My Plan")
                     .font(.headline)
                     .padding(.bottom, 5)
                 
-                // Liste der gespeicherten Pläne
+                // Scrollable List
                 if notes.isEmpty {
-                    Spacer()
-                    Text("No plans yet")
+                    Text("List is Empty")
                         .foregroundColor(.secondary)
-                    Spacer()
+                        .padding(.top, 20)
                 } else {
                     List {
-                        ForEach(notes) { note in
-                            VStack(alignment: .leading, spacing: 4) {
+                        ForEach(notes, id: \.id) { note in
+                            VStack(alignment: .leading) {
                                 Text(note.content ?? "")
-                                    .font(.body)
-                                if let date = note.date {
-                                    Text(date, style: .date)
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
+                                    .lineLimit(3)
+                                    .padding(.vertical, 4)
+                                Text("Created at: \(note.date ?? Date(), formatter: itemFormatter)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
-                            .padding(.vertical, 4)
+                            .contentShape(Rectangle())
+//                            .onTapGesture {
+//                                selectedNote = note
+//                                showDetail = true
+//                            }
+                            .onTapGesture {
+                                selectedNote = note
+                            }
+
                         }
-                        .onDelete(perform: deletePlan)
+                        .onDelete(perform: deleteNotes)
                     }
-                    .listStyle(PlainListStyle()) // sorgt für sauberes Scrollen
+                    .sheet(item: $selectedNote) { note in
+                        NoteEditView(note: note)
+                            .environment(\.managedObjectContext, viewContext)
+                    }
+
+                    .listStyle(PlainListStyle())
                 }
                 
                 Spacer()
             }
             .padding()
             .navigationTitle("Training Plan")
+            .sheet(item: $selectedNote) { note in
+                NoteEditView(note: note)
+                    .environment(\.managedObjectContext, viewContext)
+            }
         }
     }
     
+    private var itemFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter
+    }
+    
+    // Neue Notiz speichern
     private func savePlan() {
-        guard !newPlanText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+            guard !newPlanText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
-        let plan = TrainingNote(context: viewContext)
-        plan.content = newPlanText
-        plan.date = Date()
+            let plan = TrainingNote(context: viewContext)
+            plan.content = newPlanText
+            plan.date = Date()
 
-        do {
-            try viewContext.save()
-            newPlanText = ""
-        } catch {
-            print("Error saving plan: \(error)")
+            do {
+                try viewContext.save()
+                newPlanText = ""
+            } catch {
+                print("Error saving plan: \(error)")
+            }
         }
-    }
-
     
-    // Notiz löschen
-    private func deletePlan(at offsets: IndexSet) {
+    // Swipe-to-delete
+    private func deleteNotes(at offsets: IndexSet) {
         offsets.map { notes[$0] }.forEach(viewContext.delete)
         do {
             try viewContext.save()
@@ -195,3 +123,53 @@ struct TrainingPlanView: View {
     }
 }
 
+// Editierbare Detailansicht
+struct NoteEditView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @ObservedObject var note: TrainingNote
+    @Environment(\.presentationMode) var presentationMode
+    @State private var editedContent: String = ""
+
+    var body: some View {
+        NavigationView {
+            VStack(alignment: .leading) {
+                TextEditor(text: $editedContent)
+                    .frame(height: 300)
+                    .border(Color.gray.opacity(0.5), width: 1)
+                    .padding()
+
+                Text("Created at: \(note.date ?? Date(), formatter: itemFormatter)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .navigationTitle("Edit Note")
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    presentationMode.wrappedValue.dismiss()
+                },
+                trailing: Button("Save") {
+                    note.content = editedContent
+                    do {
+                        try viewContext.save()
+                        presentationMode.wrappedValue.dismiss()
+                    } catch {
+                        print("Error saving edited note: \(error)")
+                    }
+                }
+            )
+            .onAppear {
+                editedContent = note.content ?? ""
+            }
+        }
+    }
+
+    private var itemFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .short
+        return formatter
+    }
+}
