@@ -58,15 +58,10 @@ struct TrainingPlanView: View {
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
-                            .contentShape(Rectangle())
-//                            .onTapGesture {
-//                                selectedNote = note
-//                                showDetail = true
-//                            }
+                            .contentShape(Rectangle()) // Damit der gesamte Zellbereich tappable ist
                             .onTapGesture {
-                                selectedNote = note
+                                selectedNote = note // Nur hier Sheet triggern
                             }
-
                         }
                         .onDelete(perform: deleteNotes)
                     }
@@ -74,7 +69,6 @@ struct TrainingPlanView: View {
                         NoteEditView(note: note)
                             .environment(\.managedObjectContext, viewContext)
                     }
-
                     .listStyle(PlainListStyle())
                 }
                 
