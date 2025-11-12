@@ -1,32 +1,41 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var selection: String? = "Home"
-    
     var body: some View {
-        NavigationSplitView {
-            List {
-                NavigationLink(destination: HomeView()) {
-                    Label("Home", systemImage: "house")
-                }
-                NavigationLink(destination: TrainingPlanView()) {
-                    Label("Training Notes", systemImage: "list.bullet")
-                }
-                NavigationLink(destination: StatisticsView()) {
-                    Label("Workout Statistics", systemImage: "chart.bar")
-                }
-                NavigationLink(destination: NewExerciseView()) {
-                    Label("New Exercise", systemImage: "plus.circle")
-                }
-                NavigationLink(destination: CalendarView()) {
-                    Label("Calendar", systemImage: "calendar")
-                }
+        TabView {
+            NavigationStack {
+                HomeView()
+                    .navigationTitle("Home")
             }
-            .listStyle(SidebarListStyle())
-            .navigationTitle("Dashboard")
-        } detail: {
-//            if open up the app, the contentview will show first (HomeView())
-            HomeView()
+            .tabItem {
+                Label("Home", systemImage: "house")
+            }
+            
+            NavigationStack {
+                TrainingPlanView()
+                    .navigationTitle("Notes")
+            }
+            .tabItem {
+                Label("Notes", systemImage: "square.and.pencil")
+            }
+            
+            NavigationStack {
+                TemplateListView()
+                    .navigationTitle("Templates")
+            }
+            .tabItem {
+                Label("Templates", systemImage: "newspaper")
+            }
+
+            
+            NavigationStack {
+                StatisticsView()
+                    .navigationTitle("Workout Statistics")
+            }
+            .tabItem {
+                Label("Statistics", systemImage: "chart.pie")
+            }
+            
         }
     }
 }

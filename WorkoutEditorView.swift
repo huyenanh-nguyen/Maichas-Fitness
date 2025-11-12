@@ -20,16 +20,30 @@ struct WorkoutSet: Identifiable, Hashable, Codable {
 // MARK: - Workout Editor View
 struct WorkoutEditorView: View {
     @Environment(\.managedObjectContext) private var viewContext
-
+    @Environment(\.dismiss) private var dismiss
+    
+    var onWorkoutSaved: (() -> Void)? = nil
+    var date: Date
+    var prefilledExercises: [WorkoutExercise]? = nil
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \WorkoutEntity.date, ascending: true)]
     ) var workouts: FetchedResults<WorkoutEntity>
 
-    var date: Date
+    
     @State private var startTime = Date()
     @State private var endTime = Date()
     @State private var exercises: [WorkoutExercise] = [WorkoutExercise()]
     @State private var notes: String = ""
+    @State private var showTemplateNameAlert = false
+    @State private var templateName = ""
+    
+    init(onWorkoutSaved: (() -> Void)? = nil, date: Date, prefilledExercises: [WorkoutExercise]? = nil) {
+           self.date = date
+           self.prefilledExercises = prefilledExercises
+           self.onWorkoutSaved = onWorkoutSaved
+           // 🔹 Wenn prefilledExercises vorhanden, setze State exercises
+           _exercises = State(initialValue: prefilledExercises ?? [WorkoutExercise()])
+       }
 
     var body: some View {
         ScrollView {
@@ -61,10 +75,22 @@ struct WorkoutEditorView: View {
                     saveWorkout()
                 }
                 .buttonStyle(.borderedProminent)
+                
+                Button("Save Template") {
+                    showTemplateNameAlert = true
+                }
+                .buttonStyle(.borderedProminent)
             }
             .padding()
         }
         .navigationTitle("Workout Editor")
+        .alert("Save Template", isPresented: $showTemplateNameAlert) {
+            TextField("Template name", text: $templateName)
+            Button("Save") { saveTemplate() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Enter a name for this template")
+        }
     }
 
     // MARK: - Save Workout
@@ -76,16 +102,40 @@ struct WorkoutEditorView: View {
         workout.endTime = endTime
         workout.notes = notes
 
-        // 🧠 JSON speichern
+        // save JSON
         if let data = try? JSONEncoder().encode(exercises) {
             workout.exercisesData = data as NSData
         }
 
         do {
             try viewContext.save()
-            print("✅ Workout gespeichert")
+            onWorkoutSaved?()
+            dismiss()
+            print("Workout gespeichert")
         } catch {
-            print("❌ Error saving workout: \(error)")
+            print("Error saving workout: \(error)")
+        }
+    }
+
+    // MARK: - Save Template
+    private func saveTemplate() {
+        let trimmed = templateName.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+
+        let template = TemplateEntity(context: viewContext)
+        template.id = UUID()
+        template.name = trimmed
+
+        if let data = try? JSONEncoder().encode(exercises) {
+            template.exercisesData = data
+        }
+
+        do {
+            try viewContext.save()
+            print("✅ Template '\(trimmed)' gespeichert")
+            templateName = ""
+        } catch {
+            print("❌ Error saving template: \(error)")
         }
     }
 }
@@ -96,8 +146,8 @@ struct ExerciseSection: View {
 
     let equipmentOptions = [
         "Barbells", "Dumbbells", "Kettlebells", "Bodyweight",
-        "Machines", "Treadmills", "Resistance Bands", "Weight Plates",
-        "Stairmasters", "Yoga Mat", "Other"
+        "Squat Machines", "Hack Squat Machines", "Resistance Bands", "Butterfly Machine", "Leg press","Weight Plates",
+        "Stairmasters","Treadmills" ,"Rowing Machines", "Yoga Mat", "Smith Machine", "Cable Machine 1 Wheel", "Cable Machine 2 Wheels", "Cable Machine 4 Wheels","Medicine Ball"
     ]
 
     let bodypartOptions = [
