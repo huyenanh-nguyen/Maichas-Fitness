@@ -5,8 +5,10 @@ struct TrainingPlanView: View {
     @Environment(\.managedObjectContext) private var viewContext
     
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \TrainingNote.date, ascending: true)]
+        entity: TrainingNote.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \TrainingNote.title, ascending: true)]
     ) var notes: FetchedResults<TrainingNote>
+
     
     @State private var newPlanText: String = ""
     @State private var selectedNote: TrainingNote? = nil

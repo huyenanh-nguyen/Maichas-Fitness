@@ -10,7 +10,7 @@ struct ContentView: View {
                     Label("Home", systemImage: "house")
                 }
                 NavigationLink(destination: TrainingPlanView()) {
-                    Label("Training Plan", systemImage: "list.bullet")
+                    Label("Training Notes", systemImage: "list.bullet")
                 }
                 NavigationLink(destination: StatisticsView()) {
                     Label("Workout Statistics", systemImage: "chart.bar")
