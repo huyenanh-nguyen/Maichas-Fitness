@@ -59,7 +59,7 @@ struct HomeView: View {
                 .tint(hasWorkout(on: selectedDate) ? .green : .accentColor) // 🔹 Farbe ändern
                 .padding()
 
-            Button("Add / View Workout") {
+            Button("Add Workout") {
                 showWorkoutEditor = true
             }
             .buttonStyle(.borderedProminent)
@@ -70,19 +70,19 @@ struct HomeView: View {
             }
             .buttonStyle(.bordered)
         }
-        .sheet(isPresented: $showWorkoutEditor) {
-            WorkoutEditorView(onWorkoutSaved: {
-                // Damit UI aktualisiert
-                // Kein spezielles Reload nötig, FetchRequest aktualisiert sich automatisch
-            }, date: selectedDate)
+        .sheet(isPresented: $showWorkoutEditor) {   //$showWorkoutEditor
+            WorkoutEditorView(
+                    date: selectedDate,
+                    prefilledExercises: prefilledExercises
+                )
             .environment(\.managedObjectContext, viewContext)
         }
         
         .sheet(isPresented: $showTemplatePicker) {
             TemplatePickerView(onSelect: { selectedExercises in
-                prefilledExercises = selectedExercises
-                showWorkoutEditor = true
-            })
+           prefilledExercises = selectedExercises
+           showWorkoutEditor = true
+       })
         }
 
     }

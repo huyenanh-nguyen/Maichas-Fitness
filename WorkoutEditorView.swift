@@ -5,7 +5,6 @@ import CoreData
 struct WorkoutExercise: Identifiable, Hashable, Codable {
     var id = UUID()
     var name: String = ""
-    var bodyPart: String = ""
     var equipment: String = "Choose Equipment"
     var bodypart: String = "Choose Body Part"
     var sets: [WorkoutSet] = [WorkoutSet()]
@@ -20,14 +19,16 @@ struct WorkoutSet: Identifiable, Hashable, Codable {
 // MARK: - Workout Editor View
 struct WorkoutEditorView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.dismiss) private var dismiss
-    
-    var onWorkoutSaved: (() -> Void)? = nil
+        @Environment(\.dismiss) private var dismiss
+        
     var date: Date
     var prefilledExercises: [WorkoutExercise]? = nil
+    var isReadOnly: Bool = false
+    var onWorkoutSaved: () -> Void = {}
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \WorkoutEntity.date, ascending: true)]
     ) var workouts: FetchedResults<WorkoutEntity>
+    
 
     
     @State private var startTime = Date()
@@ -37,52 +38,61 @@ struct WorkoutEditorView: View {
     @State private var showTemplateNameAlert = false
     @State private var templateName = ""
     
-    init(onWorkoutSaved: (() -> Void)? = nil, date: Date, prefilledExercises: [WorkoutExercise]? = nil) {
+    init(date: Date, prefilledExercises: [WorkoutExercise]? = nil, isReadOnly: Bool = false, onWorkoutSaved: @escaping () -> Void = {}) {
            self.date = date
            self.prefilledExercises = prefilledExercises
+            self.isReadOnly = isReadOnly
            self.onWorkoutSaved = onWorkoutSaved
-           // 🔹 Wenn prefilledExercises vorhanden, setze State exercises
+           
            _exercises = State(initialValue: prefilledExercises ?? [WorkoutExercise()])
        }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-
+                
                 Text("Workout for \(date.formatted(date: .abbreviated, time: .omitted))")
                     .font(.title2)
-
+                
                 DatePicker("Start Time", selection: $startTime, displayedComponents: [.hourAndMinute])
                     .padding(.vertical, 4)
-
+                
                 ForEach($exercises) { $exercise in
                     ExerciseSection(exercise: $exercise)
                 }
-
+                
                 Button("+ Add Exercise") {
                     exercises.append(WorkoutExercise())
                 }
                 .padding(.vertical)
-
+                
                 TextField("Notes (optional)", text: $notes, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
-                    .padding(.bottom)
-
+                    .padding(.bottom).disabled(isReadOnly)
+                
                 DatePicker("End Time", selection: $endTime, displayedComponents: [.hourAndMinute])
                     .padding(.vertical, 4)
-
-                Button("End Workout") {
-                    saveWorkout()
-                }
-                .buttonStyle(.borderedProminent)
                 
-                Button("Save Template") {
-                    showTemplateNameAlert = true
-                }
-                .buttonStyle(.borderedProminent)
-            }
+                if !isReadOnly {
+                    
+                    Button("End Workout") {
+                        saveWorkout()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    
+                    Button("Save Template") {
+                        showTemplateNameAlert = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                }}
             .padding()
-        }
+            .onAppear {
+                        if let prefilledExercises = prefilledExercises {
+                            exercises = prefilledExercises     
+                        }
+                    }
+        }.allowsHitTesting(!isReadOnly)
+            .opacity(isReadOnly ? 0.6 : 1)
         .navigationTitle("Workout Editor")
         .alert("Save Template", isPresented: $showTemplateNameAlert) {
             TextField("Template name", text: $templateName)
@@ -109,22 +119,24 @@ struct WorkoutEditorView: View {
 
         do {
             try viewContext.save()
-            onWorkoutSaved?()
+            onWorkoutSaved()
             dismiss()
-            print("Workout gespeichert")
+            print("saved Workout")
         } catch {
             print("Error saving workout: \(error)")
         }
+        onWorkoutSaved()
     }
 
     // MARK: - Save Template
     private func saveTemplate() {
-        let trimmed = templateName.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return }
+//        let trimmed = templateName.trimmingCharacters(in: .whitespaces)
+//        guard !trimmed.isEmpty else { return }
 
         let template = TemplateEntity(context: viewContext)
         template.id = UUID()
-        template.name = trimmed
+        template.name = "Template - \(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short))"
+
 
         if let data = try? JSONEncoder().encode(exercises) {
             template.exercisesData = data
@@ -132,10 +144,10 @@ struct WorkoutEditorView: View {
 
         do {
             try viewContext.save()
-            print("✅ Template '\(trimmed)' gespeichert")
+            print("saved Template")
             templateName = ""
         } catch {
-            print("❌ Error saving template: \(error)")
+            print("Error saving template: \(error)")
         }
     }
 }
